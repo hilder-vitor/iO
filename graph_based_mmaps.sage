@@ -64,9 +64,20 @@ def encode(params, S, u, v, Au, Av, trapdoor_u):
     D = solve_matrix_ISIS_with_trapdoor(Au, S*Av + E, trapdoor_u, params['n'], params['m'], params['q'])
     return D
 
+# Test if D encodes zero relative to some path begining in u
+def zero_test(params, D, Au):
+    if norm(Au*D) < params['q'] / (2^(params['t']+1)):
+        return 1
+    return 0
+
+def extract(params, D, Au):
+    val = (Au*D % params['q'])[0,0]
+    print "val =", val
+    return val / (2^(params['t']+1)) 
+
 G = create_digraph(4, [[1,2], [1,3], [2,0]])
 
-params = params_gen(15, G)
+params = params_gen(5, G)
 print params
 
 matrices, trapdoors = instance_gen(params)
@@ -82,7 +93,16 @@ print "D = encode(params, S, 1, 2, matrices[1], matrices[2], trapdoors[1])"
 D = encode(params, S, 1, 2, matrices[1], matrices[2], trapdoors[1])
 
 print D
-
 print matrix_norm(D)
 
+print "extract(params, D, matrices[1])"
+print extract(params, D, matrices[1])
 
+print "D = encode(params, S, 1, 2, matrices[1], matrices[2], trapdoors[1])"
+D = encode(params, S, 1, 2, matrices[1], matrices[2], trapdoors[1])
+
+print D
+print matrix_norm(D)
+
+print "extract(params, D, matrices[1])"
+print extract(params, D, matrices[1])

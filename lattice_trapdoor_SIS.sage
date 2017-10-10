@@ -87,7 +87,6 @@ def solve_ISIS_with_trapdoor(A, u, R, n, m, q):
 def solve_matrix_ISIS_with_trapdoor(A, U, R, n, m, q):
     solutions = []
     for j in xrange(U.ncols()):
-        print "solutions.append(solve_ISIS_with_trapdoor(A, U[:, ",j,"], R, n, m, q))"
         solutions.append(solve_ISIS_with_trapdoor(A, U[:, j], R, n, m, q))
     return block_matrix(1, U.ncols(), solutions)
 
