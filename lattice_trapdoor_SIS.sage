@@ -73,7 +73,9 @@ def solve_ISIS_with_trapdoor(A, u, R, n, m, q):
         return False
     m_bar = m - w
 
-    rand_v = random_matrix_mod_q(m_bar, 1, 10) # XXX: fix that bound: 10 is arbitrary
+    X = DiscreteGaussianDistributionIntegerSampler(sigma=ceil(sqrt(n*l)))
+    rand_v = Matrix(m_bar, 1, [X() for i in xrange(m_bar)])
+    #rand_v = random_matrix_mod_q(m_bar, 1, 10) # fix that bound: 10 is arbitrary
     
     r2 = binary((u - A[:,0:m_bar]*rand_v) % q, n, q)  # binary(u - A_bar*R)
     r1 = rand_v + R*r2
@@ -81,33 +83,44 @@ def solve_ISIS_with_trapdoor(A, u, R, n, m, q):
 
     return block_matrix(2, 1, [r1, r2])
 
+# Use trapdoor R to return small solution r to Ar = U (mod q) with A having format [A_bar | G - A_bar * R] and U being a matrix
+def solve_matrix_ISIS_with_trapdoor(A, U, R, n, m, q):
+    solutions = []
+    for j in xrange(U.ncols()):
+        print "solutions.append(solve_ISIS_with_trapdoor(A, U[:, ",j,"], R, n, m, q))"
+        solutions.append(solve_ISIS_with_trapdoor(A, U[:, j], R, n, m, q))
+    return block_matrix(1, U.ncols(), solutions)
 
 def test_ISIS_solution(n, m, q):
     A, R = sample_SIS_matrix_and_trapdoors(n, m, q)
       
-    u = random_matrix_mod_q(n, 1, q)
+    U = random_matrix_mod_q(n, 3, q)
     
     for i in xrange(3):
-        r = solve_ISIS_with_trapdoor(A, u, R, n, m, q)
+        r = solve_matrix_ISIS_with_trapdoor(A, U, R, n, m, q)
 
         print "---- Is A*r = u % q ? ----"
-        print A*r % q == u
-        print_vec(r)
+        print A*r % q == U
+        print r.nrows()
+        print_mat(r)
+        
     print "_________________________"
 
 from sage.stats.distributions.discrete_gaussian_integer import DiscreteGaussianDistributionIntegerSampler
 
-#####  LWE parameters #######
-n = 5
-q = next_prime(10*n)
-m = 10 * n * ceil(log(q, 2))
-alpha = 0.01  # not yet being used
-sigma = alpha * q
-#####  LWE parameters #######
+def run_tests():
+    #####  LWE parameters #######
+    n = 5
+    q = next_prime(10*n)
+    m = 10 * n * ceil(log(q, 2))
+    alpha = 0.01  # not yet being used
+    sigma = alpha * q
+    #####  LWE parameters #######
 
-#X = DiscreteGaussianDistributionIntegerSampler(sigma=sigma)
-print "-------- LWE (normal) instance---------"
-print "n =", n, " ....  m =", m, " ....  q =", q, " .... alpha =", alpha, " .... sigma =", sigma
+    #X = DiscreteGaussianDistributionIntegerSampler(sigma=sigma)
+    print "-------- LWE (normal) instance---------"
+    print "n =", n, " ....  m =", m, " ....  q =", q, " .... alpha =", alpha, " .... sigma =", sigma
 
-for i in xrange(10):
-    test_ISIS_solution(n, m, q)
+    for i in xrange(3):
+        test_ISIS_solution(n, m, q)
+        
