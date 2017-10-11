@@ -19,6 +19,13 @@ def my_modular(x, q):
 
 def mod_vec(v, q):
     return Matrix(1, v.ncols(), [my_modular(v[0,i], q) for i in xrange(v.ncols())])
+
+def mod_matrix(A, q):
+    for i in xrange(A.nrows()):
+        for j in xrange(A.ncols()):
+            A[i, j] = my_modular(A[i, j], q)
+    return A
+
     
 # Return a 1xn matrix (row vector) with uniform random elements from Z_q
 def random_vector_mod_q(n, q):
@@ -43,12 +50,15 @@ def gadget_matrix(n, q):
 
 def binary(u, n, q):
     l = ceil(log(q,2))
-    resp = []
+    resp = Matrix(n*l, 1)
+    i = 0
     for u_i in u[:,0]:
-        resp += (u_i[0].digits(base=2, padto=l))
+        dig = u_i[0].digits(base=2, padto=l)
+        for j in xrange(l):
+            resp[i+j, 0] = dig[j]
+        i += l
         
-    return Matrix(n*l, 1, resp)
-
+    return resp
 
 def sample_SIS_matrix_and_trapdoors(n, m, q):
     l = ceil(log(q, 2))
@@ -79,7 +89,6 @@ def solve_ISIS_with_trapdoor(A, u, R, n, m, q):
     
     r2 = binary((u - A[:,0:m_bar]*rand_v) % q, n, q)  # binary(u - A_bar*R)
     r1 = rand_v + R*r2
-    
 
     return block_matrix(2, 1, [r1, r2])
 

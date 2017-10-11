@@ -1,3 +1,5 @@
+from sage.misc.gperftools import Profiler
+
 def matrix_norm(A):
     max_val = 0
     for i in xrange(A.nrows()):
@@ -31,18 +33,17 @@ def sample_matrix(nrow, ncol, dist):
 def params_gen(sec_param, graph):
     d = diameter(graph)
     n = ceil(d * sec_param * log(d * sec_param, 2))
-    q = (d * sec_param) ^ d
+    q = next_prime((d * sec_param) ^ d)
     m = n * d * ceil(log(q, 2))
     s = sqrt(n)
     sigma = sqrt(n * (d + 1) * ceil(log(q, 2)))
     t = floor(log(q, 2) / 4) - 1
     X = DiscreteGaussianDistributionIntegerSampler(sigma=sigma)
-    return {'d':d, 'n':n, 'q':q, 'm':m, 's':s, 'sigma':sigma, 't':t, 'G':graph, 'Chi':X}
+    return {'lambda':sec_param, 'd':d, 'n':n, 'q':q, 'm':m, 's':s, 'sigma':sigma, 't':t, 'G':graph, 'Chi':X}
 
 from lattice_trapdoor_SIS import sample_SIS_matrix_and_trapdoors
 from lattice_trapdoor_SIS import solve_matrix_ISIS_with_trapdoor
 from sage.stats.distributions.discrete_gaussian_integer import DiscreteGaussianDistributionIntegerSampler
-
 def instance_gen(params):
     matrices = []
     trapdoors = []
@@ -57,52 +58,59 @@ def sample(params):
     return sample_matrix(params['n'], params['n'], params['Chi'])
 
 def encode(params, S, u, v, Au, Av, trapdoor_u):
-    print "E = sample_matrix(params['n'], params['m'], params['Chi'])"
     E = sample_matrix(params['n'], params['m'], params['Chi'])
-    
-    print "D = solve_matrix_ISIS_with_trapdoor(Au, S*Av + E, trapdoor_u, params['n'], params['m'], params['q'])"
     D = solve_matrix_ISIS_with_trapdoor(Au, S*Av + E, trapdoor_u, params['n'], params['m'], params['q'])
     return D
 
 # Test if D encodes zero relative to some path begining in u
+from lattice_trapdoor_SIS import mod_matrix
 def zero_test(params, D, Au):
-    if norm(Au*D) < params['q'] / (2^(params['t']+1)):
-        return 1
-    return 0
+    if matrix_norm(mod_matrix(Au*D, params['q'])) < params['q'] / (2^(params['t']+1)):
+        return True
+    return False
 
+
+import hashlib
 def extract(params, D, Au):
-    val = (Au*D % params['q'])[0,0]
-    print "val =", val
-    return val / (2^(params['t']+1)) 
+    max_value = matrix_norm((Au*D) % params['q'])
 
+    extracted_bits = str(max_value // (2^(params['t']+1)))
+
+    hex_extracted_val = hashlib.sha1(extracted_bits).hexdigest()
+
+    return ZZ('0x' + hex_extracted_val)
+   
+
+
+########################################################################
+####        MAIN
+security_parameter = 8
 G = create_digraph(4, [[1,2], [1,3], [2,0]])
 
-params = params_gen(5, G)
+params = params_gen(security_parameter, G)
 print params
 
 matrices, trapdoors = instance_gen(params)
 
-print matrices
-
-print trapdoors
-
-
 S = sample(params)
 
-print "D = encode(params, S, 1, 2, matrices[1], matrices[2], trapdoors[1])"
-D = encode(params, S, 1, 2, matrices[1], matrices[2], trapdoors[1])
+print "D1 = encode(params, S, 1, 3, A_1, A_3, trapdoors[1])"
+D1 = encode(params, S, 1, 3, matrices[1], matrices[3], trapdoors[1])
 
-print D
-print matrix_norm(D)
+print "extract(params, D1, matrices[1])"
+extracted_1 = extract(params, D1, matrices[1])
+print extracted_1
 
-print "extract(params, D, matrices[1])"
-print extract(params, D, matrices[1])
+print "D2 = encode(params, S, 1, 3, A_1, A_3, trapdoors[1])"
+D2 = encode(params, S, 1, 3, matrices[1], matrices[3], trapdoors[1])
 
-print "D = encode(params, S, 1, 2, matrices[1], matrices[2], trapdoors[1])"
-D = encode(params, S, 1, 2, matrices[1], matrices[2], trapdoors[1])
+print "extract(params, D2, matrices[1])"
+extracted_2 = extract(params, D2, matrices[1])
+print extracted_2
 
-print D
-print matrix_norm(D)
+print "Do the two random extracted values are equal?"
+print extracted_1 == extracted_2
 
-print "extract(params, D, matrices[1])"
-print extract(params, D, matrices[1])
+D3 = D1 - D2
+print "Does D1 - D2 encodes zero?"
+print zero_test(params, D3, matrices[1])
