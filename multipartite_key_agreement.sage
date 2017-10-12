@@ -1,0 +1,69 @@
+
+def create_star_graph(k):
+    """Create a graph to represent the k chains where the users will publish their individual
+    values to get the shared secret.
+    
+    For each of the k users, there is a chain (one branch in the graph) with k vertices, each one connected to the next one in the chain
+    and the last vertex of each chain is connected to the same vertex 0. Therefore, the returned graph is a "kind" of star graph with
+    k*k + 1 vertices.
+
+    For instance, for k=3, we have
+
+    1,1 ->  1,2 -> 1,3 -------\
+                               \
+    2,1 ->  2,2 -> 2,3 --------> 0
+                               /
+    3,1 ->  3,2 -> 3,3 -------/
+    
+    """
+
+    G = DiGraph(k*k + 1)
+    
+    for i in xrange(1,k+1):
+        p = (i-1)*k+1
+        for j in xrange(k-1):
+            G.add_edge(p+j, p+j+1, str(i)+"-"+str(j))
+            
+    G.add_edge(p+k-1, 0, str(i)+"-0")
+            
+    return G
+
+
+def generate_matrices_for_vertices(k, mmaps_params):
+    N = k+1 # XXX: check how to chose that value of N
+    As, trapdoors = instance_gen(params)
+    C = {}
+    for i in xrange(1,k+1):
+        for l in xrange(N):
+            t_i_l = sample(params)
+            for i_prime in xrange(1,k+1):
+                j = (i + i_prime) % k
+                if 0 == j:   # edge from matrix A_i,k to A_0
+                    source = i*k
+                    dest = 0
+                else:
+                    source = (i-1)*k + j
+                    dest = (i-1)*k + j + 1
+                C[i, l, i_prime] = encode(params, t_i_l, source, dest, As[source], As[dest], trapdoors[source])
+    sources_each_chain = [As[(i-1)*k + 1] for i in xrange(k)]
+    return C, sources_each_chain
+
+
+from graph_based_mmaps import params_gen
+from graph_based_mmaps import instance_gen
+from graph_based_mmaps import sample
+from graph_based_mmaps import encode
+from graph_based_mmaps import zero_test
+from graph_based_mmaps import extract
+
+
+k = 3
+sec_param = 1
+
+G = create_star_graph(k)
+params = params_gen(3, G)
+
+C, sources_each_chain = generate_matrices_for_vertices(k, params)
+
+print C
+print sources_each_chain

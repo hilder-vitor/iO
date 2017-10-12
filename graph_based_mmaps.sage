@@ -1,4 +1,3 @@
-from sage.misc.gperftools import Profiler
 
 def matrix_norm(A):
     max_val = 0
@@ -36,7 +35,7 @@ def params_gen(sec_param, graph):
     q = next_prime((d * sec_param) ^ d)
     m = n * d * ceil(log(q, 2))
     s = sqrt(n)
-    sigma = sqrt(n * (d + 1) * ceil(log(q, 2)))
+    sigma = sqrt(n * (d + 1) * ceil(log(q, 2))) / 4
     t = floor(log(q, 2) / 4) - 1
     X = DiscreteGaussianDistributionIntegerSampler(sigma=sigma)
     return {'lambda':sec_param, 'd':d, 'n':n, 'q':q, 'm':m, 's':s, 'sigma':sigma, 't':t, 'G':graph, 'Chi':X}
@@ -84,33 +83,34 @@ def extract(params, D, Au):
 
 ########################################################################
 ####        MAIN
-security_parameter = 8
-G = create_digraph(4, [[1,2], [1,3], [2,0]])
+def test_graph_based_mmap():
+    security_parameter = 9
+    G = create_digraph(4, [[1,2], [1,3], [2,0]])
 
-params = params_gen(security_parameter, G)
-print params
+    params = params_gen(security_parameter, G)
+    print params
 
-matrices, trapdoors = instance_gen(params)
+    matrices, trapdoors = instance_gen(params)
 
-S = sample(params)
+    S = sample(params)
 
-print "D1 = encode(params, S, 1, 3, A_1, A_3, trapdoors[1])"
-D1 = encode(params, S, 1, 3, matrices[1], matrices[3], trapdoors[1])
+    print "D1 = encode(params, S, 1, 3, A_1, A_3, trapdoors[1])"
+    D1 = encode(params, S, 1, 3, matrices[1], matrices[3], trapdoors[1])
 
-print "extract(params, D1, matrices[1])"
-extracted_1 = extract(params, D1, matrices[1])
-print extracted_1
+    print "extract(params, D1, matrices[1])"
+    extracted_1 = extract(params, D1, matrices[1])
+    print extracted_1
 
-print "D2 = encode(params, S, 1, 3, A_1, A_3, trapdoors[1])"
-D2 = encode(params, S, 1, 3, matrices[1], matrices[3], trapdoors[1])
+    print "D2 = encode(params, S, 1, 3, A_1, A_3, trapdoors[1])"
+    D2 = encode(params, S, 1, 3, matrices[1], matrices[3], trapdoors[1])
 
-print "extract(params, D2, matrices[1])"
-extracted_2 = extract(params, D2, matrices[1])
-print extracted_2
+    print "extract(params, D2, matrices[1])"
+    extracted_2 = extract(params, D2, matrices[1])
+    print extracted_2
 
-print "Do the two random extracted values are equal?"
-print extracted_1 == extracted_2
+    print "Do the two random extracted values are equal?"
+    print extracted_1 == extracted_2
 
-D3 = D1 - D2
-print "Does D1 - D2 encodes zero?"
-print zero_test(params, D3, matrices[1])
+    D3 = D1 - D2
+    print "Does D1 - D2 encodes zero?"
+    print zero_test(params, D3, matrices[1])
