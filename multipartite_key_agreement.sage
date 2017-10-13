@@ -1,3 +1,9 @@
+from sage.stats.distributions.discrete_gaussian_integer import DiscreteGaussianDistributionIntegerSampler
+
+k = 3
+sec_param = 2
+
+N = k+1 # XXX: check how to chose that value of N
 
 def create_star_graph(k):
     """Create a graph to represent the k chains where the users will publish their individual
@@ -30,7 +36,6 @@ def create_star_graph(k):
 
 
 def generate_matrices_for_vertices(k, mmaps_params):
-    N = k+1 # XXX: check how to chose that value of N
     As, trapdoors = instance_gen(params)
     C = {}
     for i in xrange(1,k+1):
@@ -44,9 +49,21 @@ def generate_matrices_for_vertices(k, mmaps_params):
                 else:
                     source = (i-1)*k + j
                     dest = (i-1)*k + j + 1
+                print "C[",i,", ",l,", ",i_prime,"]"
                 C[i, l, i_prime] = encode(params, t_i_l, source, dest, As[source], As[dest], trapdoors[source])
     sources_each_chain = [As[(i-1)*k + 1] for i in xrange(k)]
     return C, sources_each_chain
+
+def publish(public_encodings, distribution, source_user, dest_user):
+    i_prime = source_user
+    i = dest_user
+    r_i = [distribution() for l in xrange(N)]
+    D = public_encodings[i, 0, i_prime] * r_i[0]
+    for l in xrange(1,N):
+        D += public_encodings[i, l, i_prime] * r_i[l]
+    return D
+
+
 
 
 from graph_based_mmaps import params_gen
@@ -57,13 +74,47 @@ from graph_based_mmaps import zero_test
 from graph_based_mmaps import extract
 
 
-k = 3
-sec_param = 1
-
 G = create_star_graph(k)
-params = params_gen(3, G)
+params = params_gen(sec_param, G)
 
 C, sources_each_chain = generate_matrices_for_vertices(k, params)
 
 print C
 print sources_each_chain
+
+X=params['Chi']
+
+D_0_1 = publish(C, X, 1, 0)
+print D_0_1
+D_1_1 = publish(C, X, 1, 1)
+print D_1_1
+D_2_1 = publish(C, X, 1, 2)
+print D_2_1
+D_3_1 = publish(C, X, 1, 3)
+print D_3_1
+
+D_0_2 = publish(C, X, 2, 0)
+print D_0_2
+D_1_2 = publish(C, X, 2, 1)
+print D_1_2
+D_2_2 = publish(C, X, 2, 2)
+print D_2_2
+D_3_2 = publish(C, X, 2, 3)
+print D_3_2
+
+D_0_3 = publish(C, X, 3, 0)
+print D_0_3
+D_1_3 = publish(C, X, 3, 1)
+print D_1_3
+D_2_3 = publish(C, X, 3, 2)
+print D_2_3
+D_3_3 = publish(C, X, 3, 3)
+print D_3_3
+
+
+A1 = sources_each_chain[0]
+combined = D_2_1 * D_0_1 * D_1_1 * A1
+
+secret = extract(params, combined, A1)
+
+print secret
