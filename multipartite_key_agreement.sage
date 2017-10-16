@@ -55,8 +55,8 @@ def generate_matrices_for_vertices(k, mmaps_params):
     return C, sources_each_chain
 
 def publish(public_encodings, distribution, source_user, dest_user):
-    i_prime = source_user
-    i = dest_user
+    i = source_user
+    i_prime = dest_user
     r_i = [distribution() for l in xrange(N)]
     D = public_encodings[i, 0, i_prime] * r_i[0]
     for l in xrange(1,N):
@@ -84,36 +84,30 @@ print sources_each_chain
 
 X=params['Chi']
 
-D_0_1 = publish(C, X, 1, 0)
-print D_0_1
 D_1_1 = publish(C, X, 1, 1)
 print D_1_1
-D_2_1 = publish(C, X, 1, 2)
-print D_2_1
-D_3_1 = publish(C, X, 1, 3)
-print D_3_1
-
-D_0_2 = publish(C, X, 2, 0)
-print D_0_2
-D_1_2 = publish(C, X, 2, 1)
+D_1_2 = publish(C, X, 1, 2)
 print D_1_2
+D_1_3 = publish(C, X, 1, 3)
+print D_1_3
+
+D_2_1 = publish(C, X, 2, 1)
+print D_2_1
 D_2_2 = publish(C, X, 2, 2)
 print D_2_2
-D_3_2 = publish(C, X, 2, 3)
-print D_3_2
-
-D_0_3 = publish(C, X, 3, 0)
-print D_0_3
-D_1_3 = publish(C, X, 3, 1)
-print D_1_3
-D_2_3 = publish(C, X, 3, 2)
+D_2_3 = publish(C, X, 2, 3)
 print D_2_3
+
+D_3_1 = publish(C, X, 3, 1)
+print D_3_1
+D_3_2 = publish(C, X, 3, 2)
+print D_3_2
 D_3_3 = publish(C, X, 3, 3)
 print D_3_3
 
 
 A1 = sources_each_chain[0]
-combined = D_2_1 * D_0_1 * D_1_1 * A1
+combined = D_1_1 * D_3_1 * D_2_1
 
 secret = extract(params, combined, A1)
 
